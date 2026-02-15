@@ -336,7 +336,13 @@ export function LearningView() {
         {/* Example sentence */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
           <p className="text-sm text-gray-500 mb-2 font-medium">Beispielsatz</p>
-          <p className="text-lg leading-relaxed">{renderBoldClickable(currentCard.exampleSentence)}</p>
+          <p className="text-lg leading-relaxed">
+            {renderBoldClickable(
+              direction === 'de-to-en'
+                ? (currentCard.exampleSentenceDe || currentCard.exampleSentence)
+                : currentCard.exampleSentence
+            )}
+          </p>
         </div>
 
         {/* Word + Synonym */}

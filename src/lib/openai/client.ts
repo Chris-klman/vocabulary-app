@@ -153,6 +153,7 @@ export async function generateCuratedVocabulary(
 export interface LearningCard {
   word: string;
   exampleSentence: string;
+  exampleSentenceDe: string;
   synonyms: string[];
   translation: string;
   additionalExamples: string[];

@@ -80,12 +80,13 @@ Return a JSON array with this EXACT structure (no additional text, only JSON):
 [
   {
     "word": "the word",
-    "exampleSentence": "A natural sentence with the word used in context. Use **word** to bold the target word.",
+    "exampleSentence": "A natural English sentence with the word used in context. Use **word** to bold the target word.",
+    "exampleSentenceDe": "Der gleiche Satz auf Deutsch, mit dem **übersetzten Wort** fett markiert.",
     "synonyms": ["synonym1", "synonym2"],
     "translation": "German translation",
     "additionalExamples": [
-      "Another example sentence using the word.",
-      "A third example sentence using the word."
+      "Another English example sentence using the word.",
+      "A third English example sentence using the word."
     ]
   }
 ]
@@ -93,8 +94,9 @@ Return a JSON array with this EXACT structure (no additional text, only JSON):
 IMPORTANT:
 - Example sentences must be natural, practical, and at C1 level
 - Bold the target word in exampleSentence using **word**
+- exampleSentenceDe must be the German translation of exampleSentence, with the German equivalent of the target word bolded using **word**
 - Provide 2 synonyms minimum
-- Provide exactly 2 additional examples
+- Provide exactly 2 additional examples (in English)
 - Translation should be the most common German translation`;
 }
 
