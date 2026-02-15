@@ -71,6 +71,33 @@ Example output:
 ["contemplate", "mitigate", "scrutinize", "leverage", "paradigm"]`;
 }
 
+export function createLearningCardPrompt(words: string[]): string {
+  return `You are an English vocabulary trainer for advanced learners (B2/C1 level).
+
+Generate learning cards for these words: ${JSON.stringify(words)}
+
+Return a JSON array with this EXACT structure (no additional text, only JSON):
+[
+  {
+    "word": "the word",
+    "exampleSentence": "A natural sentence with the word used in context. Use **word** to bold the target word.",
+    "synonyms": ["synonym1", "synonym2"],
+    "translation": "German translation",
+    "additionalExamples": [
+      "Another example sentence using the word.",
+      "A third example sentence using the word."
+    ]
+  }
+]
+
+IMPORTANT:
+- Example sentences must be natural, practical, and at C1 level
+- Bold the target word in exampleSentence using **word**
+- Provide 2 synonyms minimum
+- Provide exactly 2 additional examples
+- Translation should be the most common German translation`;
+}
+
 // Helper to extract JSON from OpenAI response
 export function extractJSON(response: string): any {
   try {

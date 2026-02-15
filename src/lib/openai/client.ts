@@ -4,6 +4,7 @@ import { OpenAICache } from './cache';
 import {
   createDictionaryLookupPrompt,
   createCuratedVocabularyPrompt,
+  createLearningCardPrompt,
   extractJSON,
 } from './prompts';
 
@@ -145,6 +146,58 @@ export async function generateCuratedVocabulary(
     console.error('Error generating curated vocabulary:', error);
     throw new Error(
       `Failed to generate curated vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+export interface LearningCard {
+  word: string;
+  exampleSentence: string;
+  synonyms: string[];
+  translation: string;
+  additionalExamples: string[];
+}
+
+/**
+ * Generate learning cards for a batch of words
+ */
+export async function generateLearningCards(
+  words: string[]
+): Promise<LearningCard[]> {
+  const cacheKey = `learning:${words.sort().join(',')}`;
+
+  const cached = await cache.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  try {
+    const client = getOpenAIClient();
+    const prompt = createLearningCardPrompt(words);
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: prompt }],
+      temperature: 0.4,
+      max_tokens: 2000,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+
+    const cards = extractJSON(content) as LearningCard[];
+    if (!Array.isArray(cards) || cards.length === 0) {
+      throw new Error('Invalid learning cards response');
+    }
+
+    await cache.set(cacheKey, JSON.stringify(cards));
+    return cards;
+  } catch (error) {
+    console.error('Error generating learning cards:', error);
+    throw new Error(
+      `Failed to generate learning cards: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
