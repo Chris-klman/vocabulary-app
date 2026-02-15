@@ -355,7 +355,12 @@ export function LearningView() {
           </div>
           <div>
             <p className="text-sm text-gray-500 mb-1">Synonyme</p>
-            <p className="text-gray-700">{currentCard.synonyms.join(', ')}</p>
+            <p className="text-gray-700">
+              {(direction === 'de-to-en'
+                ? (currentCard.synonymsDe || currentCard.synonyms)
+                : currentCard.synonyms
+              ).join(', ')}
+            </p>
           </div>
 
           {/* Revealed section */}

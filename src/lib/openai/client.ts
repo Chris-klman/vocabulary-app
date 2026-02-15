@@ -155,6 +155,7 @@ export interface LearningCard {
   exampleSentence: string;
   exampleSentenceDe: string;
   synonyms: string[];
+  synonymsDe: string[];
   translation: string;
   additionalExamples: string[];
 }
