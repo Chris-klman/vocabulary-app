@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, WordPopup } from '@/components/ui';
 import type { WordLookupResponse } from '@/types';
 
 interface WordCardProps {
@@ -82,7 +82,7 @@ export function WordCard({ wordData, onAddToVocabulary, isAdding = false, alread
               {wordData.examples.map((example, idx) => (
                 <div key={idx} className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-gray-800 mb-1">
-                    <span className="font-medium">EN:</span> {example.english}
+                    <span className="font-medium">EN:</span> <WordPopup text={example.english} />
                   </p>
                   <p className="text-gray-600 text-sm">
                     <span className="font-medium">DE:</span> {example.german}

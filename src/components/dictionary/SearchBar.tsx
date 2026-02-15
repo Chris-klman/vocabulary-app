@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
+import { useState } from 'react';
 import { Input } from '@/components/ui';
 
 interface SearchBarProps {
@@ -10,26 +9,14 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled = false }: SearchBarProps) {
   const [query, setQuery] = useState('');
-  const [debouncedQuery] = useDebounce(query, 500);
 
-  // Trigger search when debounced query changes
-  const handleDebouncedSearch = useCallback(() => {
-    if (debouncedQuery.trim().length > 0) {
-      onSearch(debouncedQuery.trim());
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const trimmed = query.trim();
+      if (trimmed.length > 0) {
+        onSearch(trimmed);
+      }
     }
-  }, [debouncedQuery, onSearch]);
-
-  // Call handleDebouncedSearch when debouncedQuery changes
-  useEffect(() => {
-    handleDebouncedSearch();
-  }, [handleDebouncedSearch]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value);
-  };
-
-  const handleClear = () => {
-    setQuery('');
   };
 
   return (
@@ -38,14 +25,15 @@ export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled
         <Input
           type="text"
           value={query}
-          onChange={handleInputChange}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
           className="pr-10"
         />
         {query && (
           <button
-            onClick={handleClear}
+            onClick={() => setQuery('')}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
             aria-label="Clear search"
           >
