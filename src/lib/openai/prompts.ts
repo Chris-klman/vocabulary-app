@@ -2,42 +2,37 @@
 
 export function createDictionaryLookupPrompt(word: string, sourceLanguage: string): string {
   const targetLanguage = sourceLanguage === 'de' ? 'en' : 'de';
+  const targetName = targetLanguage === 'en' ? 'English' : 'German';
+  const sourceName = sourceLanguage === 'en' ? 'English' : 'German';
 
   return `You are a bilingual English-German dictionary for advanced learners (B2/C1 level).
 
-${
-  sourceLanguage === 'de'
-    ? `The user has provided a GERMAN word and wants to learn its English translation.`
-    : `The user has provided an ENGLISH word and wants to learn its German translation.`
-}
+The user has typed the ${sourceName} word "${word}" and wants its ${targetName} translation.
 
-Word to look up: "${word}"
-Source language: ${sourceLanguage}
-Target language: ${targetLanguage}
-
-Return a JSON response with this EXACT structure (no additional text, only JSON):
+Return a JSON object with this EXACT structure (no text outside the JSON):
 {
   "word": "${word}",
-  "translation": ["primary translation", "alternative translation if applicable"],
-  "definition": "Clear English definition/explanation of the word",
-  "partOfSpeech": ["noun", "verb"],
-  "ipa": "/aɪˈpiːˈeɪ/",
+  "translation": ["primary ${targetName} translation", "alternative ${targetName} translation if applicable"],
+  "definition": "Concise definition in ${targetName} of the translated ${targetName} word",
+  "partOfSpeech": ["noun"],
+  "ipa": "/pronunciation of the primary ${targetName} translation/",
   "examples": [
-    {"english": "Example sentence 1 using the word", "german": "Beispielsatz 1 mit dem Wort"},
-    {"english": "Example sentence 2 using the word", "german": "Beispielsatz 2 mit dem Wort"},
-    {"english": "Example sentence 3 using the word", "german": "Beispielsatz 3 mit dem Wort"}
+    {"english": "Natural English sentence using the word", "german": "Natürlicher deutscher Beispielsatz"},
+    {"english": "Natural English sentence using the word", "german": "Natürlicher deutscher Beispielsatz"},
+    {"english": "Natural English sentence using the word", "german": "Natürlicher deutscher Beispielsatz"}
   ],
-  "synonyms": ["synonym1", "synonym2", "synonym3"],
-  "relatedWords": ["related1", "related2"],
-  "usageHints": ["Context note 1 (e.g., 'Formal context')", "Context note 2 (e.g., 'British English')"]
+  "synonyms": ["${targetName} synonym 1 of the translation", "${targetName} synonym 2", "${targetName} synonym 3"],
+  "relatedWords": ["related ${targetName} word 1", "related ${targetName} word 2"],
+  "usageHints": ["Formality or register note", "Regional or contextual note"]
 }
 
-IMPORTANT:
-- Provide comprehensive, educational content suitable for B2/C1 learners
-- Example sentences should be natural and practical
-- Include IPA pronunciation for English words
-- Usage hints should explain formality level, regional variations, or common mistakes
-- Ensure all arrays have at least the minimum required elements`;
+CRITICAL — violating these rules makes the response useless:
+- "translation" MUST contain ${targetName.toUpperCase()} words only — never ${sourceName} words
+- "synonyms" MUST be ${targetName.toUpperCase()} synonyms of the TRANSLATED word, not of "${word}"
+- "definition" MUST be written in ${targetName}
+- "ipa" is the IPA of the primary ${targetName} translation
+- Example sentences: always provide both English and German versions
+- All arrays must have at least 2 elements`;
 }
 
 export function createCuratedVocabularyPrompt(
@@ -135,37 +130,25 @@ export function createSentenceTranslationPrompt(sentence: string, sourceLanguage
 
   return `You are an expert translator specializing in natural, idiomatic ${targetName} translations.
 
-Translate this ${sourceName} sentence into ${targetName} with three different style variations.
+Translate the following ${sourceName} sentence into ${targetName} with three style variants.
 
 Sentence: "${sentence}"
 
-Return a JSON object with this EXACT structure (no additional text, only JSON):
+Return a JSON object with this EXACT structure (no text outside the JSON):
 {
   "original": "${sentence}",
   "variants": [
-    {
-      "style": "standard",
-      "label": "Standard",
-      "text": "Natural, everyday translation"
-    },
-    {
-      "style": "formal",
-      "label": "Formell",
-      "text": "More formal / professional translation"
-    },
-    {
-      "style": "informal",
-      "label": "Umgangssprachlich",
-      "text": "More casual / colloquial translation"
-    }
+    {"style": "standard",  "label": "Standard",           "text": "Natural everyday ${targetName} translation"},
+    {"style": "formal",    "label": "Formell",             "text": "Formal / professional ${targetName} translation"},
+    {"style": "informal",  "label": "Umgangssprachlich",   "text": "Casual / colloquial ${targetName} translation"}
   ]
 }
 
-IMPORTANT:
-- All three translations must be in ${targetName}
-- Each variant must feel natural and authentic for its register
-- The variants should noticeably differ in tone while preserving the meaning
-- No explanations, only the JSON object`;
+CRITICAL — violating these rules makes the response useless:
+- ALL three "text" values MUST be in ${targetName.toUpperCase()} — do NOT output ${sourceName} text
+- The input is ${sourceName}; the output must be ${targetName}
+- Each variant must feel natural and differ noticeably in register
+- No explanations, no extra fields, only the JSON object`;
 }
 
 export function createTextTranslationPrompt(text: string, sourceLanguage: string): string {
@@ -175,20 +158,21 @@ export function createTextTranslationPrompt(text: string, sourceLanguage: string
 
   return `You are an expert translator specializing in natural, flowing ${targetName} translations.
 
-Translate this ${sourceName} text into ${targetName}. Produce one single, high-quality translation that reads fluently and preserves the original meaning and tone.
+Translate the following ${sourceName} text into ${targetName}. Produce one single, high-quality translation that reads fluently and preserves the original meaning and tone.
 
 Text: "${text}"
 
-Return a JSON object with this EXACT structure (no additional text, only JSON):
+Return a JSON object with this EXACT structure (no text outside the JSON):
 {
-  "original": "${text}",
-  "translation": "The complete, natural ${targetName} translation here"
+  "translation": "The complete, natural ${targetName} translation here",
+  "original": "${text}"
 }
 
-IMPORTANT:
-- Single translation only — no variants, no alternatives
-- Keep paragraphs and formatting intact
-- The translation must sound natural and idiomatic in ${targetName}
+CRITICAL — violating these rules makes the response useless:
+- "translation" MUST be in ${targetName.toUpperCase()} — do NOT repeat the ${sourceName} text
+- The input is ${sourceName}; the translation must be ${targetName}
+- Single translation only, no variants
+- Preserve paragraphs and formatting
 - No explanations, only the JSON object`;
 }
 

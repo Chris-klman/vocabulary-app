@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { WordLookupResponse, CuratedVocabularyResponse, SentenceTranslationResponse, TextTranslationResponse, Language } from '@/types';
+import type { WordLookupResponse, CuratedVocabularyResponse, SentenceTranslationResponse, TextTranslationResponse, Language, TranslationVariant, Example } from '@/types';
 import { OpenAICache } from './cache';
 import {
   createDictionaryLookupPrompt,
@@ -65,7 +65,7 @@ export async function lookupWord(
         },
       ],
       temperature: 0.3,
-      max_tokens: 500,
+      max_tokens: 900,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -327,6 +327,229 @@ export async function translateText(
     console.error('Error translating text:', error);
     throw new Error(
       `Failed to translate text: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+// ── Partial JSON extraction helpers ─────────────────────────────────────────
+
+/** Partial word data emitted progressively as fields complete during streaming */
+export type PartialWordData = {
+  word: string;
+  translation?: string[];
+  definition?: string;
+  partOfSpeech?: string[];
+  ipa?: string;
+  examples?: Example[];
+  synonyms?: string[];
+  relatedWords?: string[];
+  usageHints?: string[];
+};
+
+/** Extract a completed JSON string field from a partial buffer */
+function extractStringField(buffer: string, field: string): string | undefined {
+  const regex = new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+  const match = buffer.match(regex);
+  return match ? unescapeJsonFragment(match[1]) : undefined;
+}
+
+/** Extract a completed JSON string-array field from a partial buffer */
+function extractStringArray(buffer: string, field: string): string[] | undefined {
+  const startRegex = new RegExp(`"${field}"\\s*:\\s*\\[`);
+  const startMatch = buffer.match(startRegex);
+  if (!startMatch || startMatch.index === undefined) return undefined;
+  const afterBracket = buffer.slice(startMatch.index + startMatch[0].length);
+  const endIdx = afterBracket.indexOf(']');
+  if (endIdx === -1) return undefined;
+  try {
+    return JSON.parse('[' + afterBracket.slice(0, endIdx + 1)) as string[];
+  } catch {
+    return undefined;
+  }
+}
+
+/** Find the index of the matching closing bracket/brace in a string */
+function findArrayEnd(str: string): number {
+  let depth = 1;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < str.length; i++) {
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (str[i] === '\\') escape = true;
+      else if (str[i] === '"') inString = false;
+      continue;
+    }
+    if (str[i] === '"') { inString = true; continue; }
+    if (str[i] === '[' || str[i] === '{') depth++;
+    else if (str[i] === ']' || str[i] === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** Extract the completed examples array from a partial buffer */
+function extractExamples(buffer: string): Example[] | undefined {
+  const startRegex = /"examples"\s*:\s*\[/;
+  const startMatch = buffer.match(startRegex);
+  if (!startMatch || startMatch.index === undefined) return undefined;
+  const afterBracket = buffer.slice(startMatch.index + startMatch[0].length);
+  const endIdx = findArrayEnd(afterBracket);
+  if (endIdx === -1) return undefined;
+  try {
+    return JSON.parse('[' + afterBracket.slice(0, endIdx + 1)) as Example[];
+  } catch {
+    return undefined;
+  }
+}
+
+/** Extract all completed sentence variant objects from a partial buffer */
+function extractSentenceVariants(buffer: string): TranslationVariant[] {
+  const variants: TranslationVariant[] = [];
+  const variantRegex = /\{\s*"style"\s*:\s*"([^"]+)"\s*,\s*"label"\s*:\s*"([^"]+)"\s*,\s*"text"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+  let match;
+  while ((match = variantRegex.exec(buffer)) !== null) {
+    variants.push({
+      style: match[1] as TranslationVariant['style'],
+      label: match[2],
+      text: unescapeJsonFragment(match[3]),
+    });
+  }
+  return variants;
+}
+
+function extractPartialWordData(buffer: string, fallbackWord: string): PartialWordData {
+  return {
+    word: extractStringField(buffer, 'word') ?? fallbackWord,
+    translation: extractStringArray(buffer, 'translation'),
+    ipa: extractStringField(buffer, 'ipa'),
+    definition: extractStringField(buffer, 'definition'),
+    partOfSpeech: extractStringArray(buffer, 'partOfSpeech'),
+    examples: extractExamples(buffer),
+    synonyms: extractStringArray(buffer, 'synonyms'),
+    relatedWords: extractStringArray(buffer, 'relatedWords'),
+    usageHints: extractStringArray(buffer, 'usageHints'),
+  };
+}
+
+// ── Streaming API functions ──────────────────────────────────────────────────
+
+/**
+ * Look up a word with streaming — calls onPartial as each field completes.
+ * Fields arrive in order: word → translation → definition → ipa → examples → synonyms.
+ */
+export async function lookupWordStream(
+  word: string,
+  sourceLanguage: Language,
+  onPartial: (data: PartialWordData) => void,
+): Promise<WordLookupResponse> {
+  const cacheKey = `word:${sourceLanguage}:${word.toLowerCase()}`;
+  const cached = await cache.get(cacheKey);
+  if (cached) {
+    const result = JSON.parse(cached) as WordLookupResponse;
+    onPartial(result);
+    return result;
+  }
+
+  try {
+    const client = getOpenAIClient();
+    const prompt = createDictionaryLookupPrompt(word, sourceLanguage);
+    const stream = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 900,
+      stream: true,
+    });
+
+    let buffer = '';
+    let lastHash = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content ?? '';
+      if (!delta) continue;
+      buffer += delta;
+
+      const partial = extractPartialWordData(buffer, word);
+      // Only re-render when something new became available
+      const hash = `${partial.translation?.length ?? 0}|${partial.definition?.length ?? 0}|${partial.examples?.length ?? 0}|${partial.synonyms?.length ?? 0}`;
+      if (hash !== lastHash) {
+        lastHash = hash;
+        onPartial(partial);
+      }
+    }
+
+    const result = extractJSON(buffer) as WordLookupResponse;
+    if (!result.word || !result.translation || !result.definition) {
+      throw new Error('Invalid response structure from OpenAI');
+    }
+    await cache.set(cacheKey, JSON.stringify(result));
+    return result;
+  } catch (error) {
+    console.error('Error streaming word lookup:', error);
+    throw new Error(
+      `Failed to look up word "${word}": ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Translate a sentence with streaming — immediately calls onPartial with the original,
+ * then adds variants one by one as they complete.
+ */
+export async function translateSentenceStream(
+  sentence: string,
+  sourceLanguage: Language,
+  onPartial: (data: SentenceTranslationResponse) => void,
+): Promise<SentenceTranslationResponse> {
+  const cacheKey = `sentence:${sourceLanguage}:${sentence.toLowerCase().trim()}`;
+  const cached = await cache.get(cacheKey);
+  if (cached) {
+    const result = JSON.parse(cached) as SentenceTranslationResponse;
+    onPartial(result);
+    return result;
+  }
+
+  try {
+    const client = getOpenAIClient();
+    const prompt = createSentenceTranslationPrompt(sentence, sourceLanguage);
+
+    // Show card immediately — original is known, variants will stream in
+    onPartial({ original: sentence, variants: [] });
+
+    const stream = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: prompt }],
+      temperature: 0.5,
+      max_tokens: 600,
+      stream: true,
+    });
+
+    let buffer = '';
+    let lastVariantCount = 0;
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content ?? '';
+      if (!delta) continue;
+      buffer += delta;
+
+      const variants = extractSentenceVariants(buffer);
+      if (variants.length > lastVariantCount) {
+        lastVariantCount = variants.length;
+        onPartial({ original: sentence, variants });
+      }
+    }
+
+    const result = extractJSON(buffer) as SentenceTranslationResponse;
+    if (!result.variants || result.variants.length === 0) {
+      throw new Error('Invalid sentence translation response');
+    }
+    await cache.set(cacheKey, JSON.stringify(result));
+    return result;
+  } catch (error) {
+    console.error('Error streaming sentence translation:', error);
+    throw new Error(
+      `Failed to translate sentence: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }

@@ -5,6 +5,8 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  hasResult?: boolean;
+  externalQuery?: string;
 }
 
 function IconMic({ size = 18 }: { size?: number }) {
@@ -28,7 +30,7 @@ const ERROR_MESSAGES: Partial<Record<SpeechErrorCode, string>> = {
   'unknown':             'Spracheingabe fehlgeschlagen.',
 };
 
-export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled = false }: SearchBarProps) {
+export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled = false, hasResult = false, externalQuery }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [interimText, setInterimText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,19 +53,29 @@ export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled
     return () => clearTimeout(t);
   }, [error, clearError]);
 
+  // Sync external query (e.g. from history selection) into internal state
+  useEffect(() => {
+    if (externalQuery !== undefined) {
+      setQuery(externalQuery);
+      setInterimText('');
+    }
+  }, [externalQuery]);
+
   // Committed text + live interim transcript
   const displayValue = query + interimText;
   const errorMessage = error ? ERROR_MESSAGES[error] : null;
 
-  // Auto-resize: empty → 140px (inviting), content → scrollHeight (compact)
+  // Auto-resize:
+  //   typing (no result): min 140px, grows upward if content is taller — never shrinks
+  //   after submit (result visible): fits to content, can be compact
   // useLayoutEffect avoids a paint flash by running before the browser draws.
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = 'auto';                              // collapse to measure
-    const target = displayValue.length === 0 ? 140 : el.scrollHeight;
+    el.style.height = 'auto';                              // collapse to measure scrollHeight
+    const target = hasResult ? el.scrollHeight : Math.max(el.scrollHeight, 260);
     el.style.height = `${target}px`;
-  }, [displayValue]);
+  }, [displayValue, hasResult]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuery(e.target.value);
@@ -96,7 +108,7 @@ export function SearchBar({ onSearch, placeholder = 'Wort eingeben...', disabled
           placeholder={isListening ? '' : placeholder}
           disabled={disabled}
           rows={1}
-          style={{ height: '140px' }}
+          style={{ height: '260px' }}
           className={`input resize-none overflow-hidden rounded-2xl leading-relaxed align-top pb-12${displayValue ? ' pr-10' : ''}`}
           autoCorrect="off"
           autoCapitalize="none"

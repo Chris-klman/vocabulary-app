@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardContent } from '@/components/ui';
+import { Card, CardContent, CopyButton } from '@/components/ui';
 import type { TextTranslationResponse } from '@/types';
 
 interface TextCardProps {
@@ -9,15 +9,15 @@ interface TextCardProps {
 export function TextCard({ data, isStreaming = false }: TextCardProps) {
   return (
     <Card className="animate-fade-in">
-      <CardHeader>
-        <p className="text-[10px] font-medium text-warm-400 uppercase tracking-widest mb-2">Original</p>
-        <p className="text-warm-500 leading-relaxed whitespace-pre-wrap">{data.original}</p>
-      </CardHeader>
-
-      <CardContent>
-        <p className="text-[10px] font-medium text-warm-400 uppercase tracking-widest mb-2">
-          Übersetzung
-        </p>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-medium text-warm-400 uppercase tracking-widest">
+            Übersetzung
+          </p>
+          {data.translation && !isStreaming && (
+            <div className="-my-1.5"><CopyButton text={data.translation} /></div>
+          )}
+        </div>
         <p className="text-warm-900 leading-relaxed whitespace-pre-wrap">
           {data.translation || (isStreaming ? '\u00A0' : '')}
           {isStreaming && (

@@ -1,11 +1,12 @@
 import { Card, CardHeader, CardContent, Button, WordPopup } from '@/components/ui';
-import type { WordLookupResponse } from '@/types';
+import type { PartialWordData } from '@/lib/openai';
 
 interface WordCardProps {
-  wordData: WordLookupResponse;
+  wordData: PartialWordData;
   onAddToVocabulary: () => void;
   isAdding?: boolean;
   alreadyAdded?: boolean;
+  isStreaming?: boolean;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -16,54 +17,65 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function WordCard({ wordData, onAddToVocabulary, isAdding = false, alreadyAdded = false }: WordCardProps) {
+export function WordCard({ wordData, onAddToVocabulary, isAdding = false, alreadyAdded = false, isStreaming = false }: WordCardProps) {
+  const extraChips = [
+    ...(wordData.translation?.slice(1) ?? []),
+    ...(wordData.synonyms ?? []),
+  ];
+
   return (
     <Card className="animate-fade-in overflow-hidden">
-      {/* Word Header */}
       <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="font-display text-3xl font-normal text-warm-900 leading-tight mb-1">
+        {/* Word + button on same row; min-w-0 + break-words ensures button never gets displaced */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display text-xl font-normal text-warm-900 leading-snug break-words">
               {wordData.word}
             </h2>
-            {wordData.ipa && (
-              <p className="text-warm-400 text-sm tracking-wide">/{wordData.ipa}/</p>
+            {wordData.partOfSpeech && wordData.partOfSpeech.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {wordData.partOfSpeech.map((pos, idx) => (
+                  <span key={idx} className="px-2 py-0.5 bg-warm-100 text-warm-600 rounded-md text-xs">
+                    {pos}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
           <Button
             variant={alreadyAdded ? 'ghost' : 'outline'}
             size="sm"
             onClick={onAddToVocabulary}
-            disabled={isAdding || alreadyAdded}
+            disabled={isAdding || alreadyAdded || isStreaming || !wordData.translation}
+            className="shrink-0"
           >
             {alreadyAdded ? '✓ Gespeichert' : isAdding ? '…' : '+ Hinzufügen'}
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Translations */}
+      <CardContent className="space-y-5">
+        {/* Translation — primary focus */}
         {wordData.translation && wordData.translation.length > 0 && (
           <div>
             <SectionLabel>Übersetzung</SectionLabel>
-            <div className="flex flex-wrap gap-2">
-              {wordData.translation.map((trans, idx) => (
-                <span key={idx} className="px-3 py-1 bg-warm-900 text-warm-50 rounded-lg text-sm">
-                  {trans}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Part of Speech */}
-        {wordData.partOfSpeech && wordData.partOfSpeech.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {wordData.partOfSpeech.map((pos, idx) => (
-              <span key={idx} className="px-2 py-1 bg-warm-100 text-warm-600 rounded-md text-xs">
-                {pos}
-              </span>
-            ))}
+            {/* Main translation */}
+            <p className="text-xl font-medium text-warm-900 leading-snug">
+              {wordData.translation[0]}
+            </p>
+            {wordData.ipa && (
+              <p className="text-warm-400 text-sm tracking-wide mt-0.5">/{wordData.ipa}/</p>
+            )}
+            {/* All further translations + synonyms in one unified chip row */}
+            {extraChips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {extraChips.map((chip, idx) => (
+                  <span key={idx} className="px-2.5 py-1 bg-warm-100 text-warm-600 rounded-lg text-sm">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -94,11 +106,16 @@ export function WordCard({ wordData, onAddToVocabulary, isAdding = false, alread
           </div>
         )}
 
-        {/* Synonyms */}
-        {wordData.synonyms && wordData.synonyms.length > 0 && (
-          <div>
-            <SectionLabel>Synonyme</SectionLabel>
-            <p className="text-warm-600 leading-relaxed">{wordData.synonyms.join(', ')}</p>
+        {/* Streaming indicator */}
+        {isStreaming && (
+          <div className="flex items-center gap-1 pt-1">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-warm-300"
+                style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
+              />
+            ))}
           </div>
         )}
       </CardContent>

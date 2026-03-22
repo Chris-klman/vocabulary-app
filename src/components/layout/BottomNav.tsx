@@ -90,7 +90,7 @@ export function BottomNav() {
               )}
             >
               <span className="flex flex-col items-center gap-1.5">
-                <span className="relative inline-flex">
+                <span className={cn("relative inline-flex", isActive && "[&>svg]:[stroke-width:2]")}>
                   {item.icon}
                   {item.path === '/profile' && isAuthenticated && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-success rounded-full border-2 border-warm-50" />
