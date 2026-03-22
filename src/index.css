@@ -1,30 +1,48 @@
 @import "tailwindcss";
 
 @theme {
-  --color-success: #22C55E;
-  --color-success-light: #86EFAC;
-  --color-error: #EF4444;
-  --color-error-light: #FCA5A5;
-  --color-gray-50: #F9FAFB;
-  --color-gray-100: #F3F4F6;
-  --color-gray-200: #E5E7EB;
-  --color-gray-300: #D1D5DB;
-  --color-gray-400: #9CA3AF;
-  --color-gray-500: #6B7280;
-  --color-gray-600: #4B5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1F2937;
-  --color-gray-900: #111827;
-  --spacing-nav: 64px;
+  /* ── Warm ivory color system ──────────────────────────────────────────── */
+  --color-warm-50:  #f7f5f0;
+  --color-warm-100: #eeecea;
+  --color-warm-200: #e0ddd6;
+  --color-warm-300: #ccc8c0;
+  --color-warm-400: #a09d97;
+  --color-warm-500: #6b6760;
+  --color-warm-600: #4a4845;
+  --color-warm-700: #3a3835;
+  --color-warm-800: #252320;
+  --color-warm-900: #1a1816;
+
+  /* ── Semantic colors (muted, premium) ─────────────────────────────────── */
+  --color-success:       #2d5a4a;
+  --color-success-light: #d4e8e0;
+  --color-error:         #7c2828;
+  --color-error-light:   #f0d4d4;
+
+  /* ── Legacy gray scale (kept for compatibility) ───────────────────────── */
+  --color-gray-50:  #f7f5f0;
+  --color-gray-100: #eeecea;
+  --color-gray-200: #e0ddd6;
+  --color-gray-300: #ccc8c0;
+  --color-gray-400: #a09d97;
+  --color-gray-500: #6b6760;
+  --color-gray-600: #4a4845;
+  --color-gray-700: #3a3835;
+  --color-gray-800: #252320;
+  --color-gray-900: #1a1816;
+
+  /* ── Spacing & sizing ─────────────────────────────────────────────────── */
+  --spacing-nav:    72px;
   --spacing-button: 44px;
   --font-size-header: 1.5rem;
-  --font-size-body: 1rem;
-  --font-size-small: 0.875rem;
-  --radius-card: 12px;
+  --font-size-body:   1rem;
+  --font-size-small:  0.875rem;
+  --radius-card: 16px;
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -36,108 +54,172 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: white;
-  color: black;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+  min-height: 100dvh;
+  background-color: #f7f5f0;
+  color: #1a1816;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
-/* Card styles */
+/* ── Safe-area nav padding (bottom nav + home-indicator) ─────────────────── */
+.pb-nav-safe {
+  padding-bottom: calc(var(--spacing-nav) + env(safe-area-inset-bottom, 0px));
+}
+
+.nav-safe-padding {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.font-display {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
 .card {
-  border-radius: 12px;
-  background-color: white;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border-radius: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 16px rgba(26, 24, 22, 0.06), 0 1px 4px rgba(26, 24, 22, 0.04);
 }
 
-/* Button base styles */
+/* ── Surface (warm secondary background block) ──────────────────────────── */
+.surface {
+  background-color: #eeecea;
+  border-radius: 12px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
 .btn {
   min-height: 44px;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: 10px;
   font-weight: 500;
+  font-size: 0.9375rem;
   transition: all 200ms ease-in-out;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .btn:focus {
   outline: none;
-  box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+  box-shadow: 0 0 0 2px #f7f5f0, 0 0 0 4px #1a1816;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn-primary {
-  background-color: black;
-  color: white;
+  background-color: #1a1816;
+  color: #f7f5f0;
 }
 
-.btn-primary:hover {
-  background-color: #1f2937;
+.btn-primary:hover:not(:disabled) {
+  background-color: #2d2b28;
 }
 
 .btn-success {
-  background-color: #22C55E;
-  color: white;
+  background-color: #2d5a4a;
+  color: #f7f5f0;
 }
 
-.btn-success:hover {
-  background-color: #16a34a;
+.btn-success:hover:not(:disabled) {
+  background-color: #234638;
 }
 
 .btn-error {
-  background-color: #EF4444;
-  color: white;
+  background-color: #7c2828;
+  color: #f7f5f0;
 }
 
-.btn-error:hover {
-  background-color: #dc2626;
+.btn-error:hover:not(:disabled) {
+  background-color: #631f1f;
 }
 
-/* Input styles */
+.btn-outline {
+  background-color: transparent;
+  color: #1a1816;
+  border: 1.5px solid #1a1816;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #eeecea;
+}
+
+/* ── Input ──────────────────────────────────────────────────────────────── */
 .input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  transition: all 200ms ease-in-out;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid #e0ddd6;
+  border-radius: 10px;
+  background-color: #ffffff;
+  color: #1a1816;
+  font-size: 1rem;      /* 16px prevents iOS auto-zoom */
+  line-height: 1.5;
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input::placeholder {
+  color: #a09d97;
 }
 
 .input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px black;
-  border-color: transparent;
+  border-color: #a09d97;
+  box-shadow: 0 0 0 3px rgba(26, 24, 22, 0.06);
 }
 
-/* Animation utilities */
+/* Remove default search input clear button (we use our own) */
+.input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* ── Scrollbar utilities ────────────────────────────────────────────────── */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Link touch behaviour ───────────────────────────────────────────────── */
+a {
+  touch-action: manipulation;
+}
+
+/* ── Animation utilities ────────────────────────────────────────────────── */
 .animate-fade-in {
-  animation: fadeIn 200ms ease-in-out;
+  animation: fadeIn 250ms ease-in-out;
 }
 
 .animate-slide-up {
-  animation: slideUp 200ms ease-in-out;
+  animation: slideUp 250ms ease-in-out;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
 }

@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import type { Word, LearningSession, Statistics, UserSettings } from '@/types';
+import type { Word, LearningSession, Statistics, UserSettings, AssessmentWord } from '@/types';
 
 // Define the database class
 export class VocabularyDatabase extends Dexie {
@@ -8,23 +8,26 @@ export class VocabularyDatabase extends Dexie {
   sessions!: Table<LearningSession, string>;
   statistics!: Table<Statistics, string>;
   settings!: Table<UserSettings, string>;
+  assessmentWords!: Table<AssessmentWord, string>;
 
   constructor() {
     super('VocabularyApp');
 
-    // Define schema
+    // Version 1 — original tables
     this.version(1).stores({
-      // Words table with indexes
       words: 'id, word, language, source, status, nextReviewDate, dateAdded',
-
-      // Sessions table
       sessions: 'id, startTime, completed',
-
-      // Statistics table (single row per user)
       statistics: 'userId',
-
-      // Settings table (single row per user)
       settings: 'userId',
+    });
+
+    // Version 2 — adds assessmentWords table for the Einstufen feature
+    this.version(2).stores({
+      words: 'id, word, language, source, status, nextReviewDate, dateAdded',
+      sessions: 'id, startTime, completed',
+      statistics: 'userId',
+      settings: 'userId',
+      assessmentWords: 'id, word, status, batchId, createdAt',
     });
   }
 }
@@ -78,12 +81,12 @@ export async function initializeDatabase() {
 
 // Export database operations helpers
 export const dbHelpers = {
-  // Clear all data (useful for testing)
   async clearAll() {
     await db.words.clear();
     await db.sessions.clear();
     await db.statistics.clear();
     await db.settings.clear();
+    await db.assessmentWords.clear();
   },
 
   // Get database stats

@@ -31,6 +31,22 @@ export interface CuratedVocabularyResponse {
   words: string[];
 }
 
+export interface TranslationVariant {
+  style: 'standard' | 'formal' | 'informal';
+  label: string;
+  text: string;
+}
+
+export interface SentenceTranslationResponse {
+  original: string;
+  variants: TranslationVariant[];
+}
+
+export interface TextTranslationResponse {
+  original: string;
+  translation: string;
+}
+
 // Cache types
 export interface CacheEntry {
   key: string;

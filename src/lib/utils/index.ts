@@ -1,6 +1,28 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export type InputType = 'word' | 'sentence' | 'text';
+
+/**
+ * Classifies user input into word, sentence, or multi-sentence text.
+ * - word: single term with no whitespace
+ * - sentence: multiple words forming at most one sentence
+ * - text: multiple sentences or a paragraph
+ */
+export function classifyInput(input: string): InputType {
+  const trimmed = input.trim();
+
+  // Single word (no whitespace)
+  if (!/\s/.test(trimmed)) return 'word';
+
+  // Count sentence endings (.!?) followed by a space or end-of-string
+  const sentenceEndings = trimmed.match(/[.!?…]+(?:\s+|$)/g);
+  const sentenceCount = sentenceEndings ? sentenceEndings.length : 0;
+
+  if (sentenceCount > 1) return 'text';
+  return 'sentence';
+}
+
 /**
  * Merge Tailwind CSS classes with proper precedence
  */

@@ -28,7 +28,7 @@ export interface Word {
   nextReviewDate: Date;
 
   // Tracking
-  source: 'user-added' | 'curated';
+  source: 'user-added' | 'curated' | 'assessment';
   dateAdded: Date;
   lastReviewed: Date | null;
   reviewCount: number;
@@ -44,6 +44,17 @@ export interface Word {
 export type WordStatus = Word['status'];
 export type WordSource = Word['source'];
 export type Language = Word['language'];
+
+// Assessment word — candidate shown in Einstufen screen
+export interface AssessmentWord {
+  id: string;
+  word: string;
+  translation: string;   // single string for quick display
+  partOfSpeech: string;
+  batchId: string;
+  createdAt: Date;
+  status: 'pending' | 'known' | 'added';
+}
 
 // Sorting and filtering types
 export type SortOption = 'dateAdded' | 'alphabetical' | 'difficulty';

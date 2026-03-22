@@ -1,15 +1,14 @@
 import { db } from '../db';
+import { supabaseWordAdapter } from '../supabase/wordAdapter';
+import { useAuthStore } from '@/stores/authStore';
 import type { Word } from '@/types';
 
-/**
- * Vocabulary Storage Service
- * Provides CRUD operations for words using Dexie
- */
-export const vocabularyStorage = {
-  /**
-   * Add a new word to the vocabulary
-   */
-  async addWord(word: Omit<Word, 'id' | 'dateAdded' | 'difficulty' | 'easeFactor' | 'interval' | 'repetitions' | 'nextReviewDate' | 'lastReviewed' | 'reviewCount' | 'correctCount' | 'incorrectCount' | 'status'>): Promise<Word> {
+// ── Dexie (local) adapter ──────────────────────────────────────────────────
+
+const dexieWordAdapter = {
+  async addWord(
+    word: Omit<Word, 'id' | 'dateAdded' | 'difficulty' | 'easeFactor' | 'interval' | 'repetitions' | 'nextReviewDate' | 'lastReviewed' | 'reviewCount' | 'correctCount' | 'incorrectCount' | 'status'>
+  ): Promise<Word> {
     const id = crypto.randomUUID();
     const now = new Date();
 
@@ -17,13 +16,11 @@ export const vocabularyStorage = {
       ...word,
       id,
       dateAdded: now,
-
-      // Initialize SRS values
-      difficulty: 3, // Medium difficulty
-      easeFactor: 2.5, // Default ease factor
-      interval: 1, // 1 day initial interval
+      difficulty: 3,
+      easeFactor: 2.5,
+      interval: 1,
       repetitions: 0,
-      nextReviewDate: now, // Available immediately
+      nextReviewDate: now,
       lastReviewed: null,
       reviewCount: 0,
       correctCount: 0,
@@ -32,139 +29,113 @@ export const vocabularyStorage = {
     };
 
     await db.words.add(newWord);
-    console.log('Word added:', newWord.word);
     return newWord;
   },
 
-  /**
-   * Get a word by ID
-   */
   async getWord(id: string): Promise<Word | undefined> {
     return db.words.get(id);
   },
 
-  /**
-   * Get all words
-   */
   async getAllWords(): Promise<Word[]> {
     return db.words.toArray();
   },
 
-  /**
-   * Update a word
-   */
   async updateWord(id: string, updates: Partial<Word>): Promise<void> {
     await db.words.update(id, updates);
-    console.log('Word updated:', id);
   },
 
-  /**
-   * Delete a word
-   */
   async deleteWord(id: string): Promise<void> {
     await db.words.delete(id);
-    console.log('Word deleted:', id);
   },
 
-  /**
-   * Get words that are due for review (nextReviewDate <= today)
-   */
   async getDueWords(): Promise<Word[]> {
     const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-
-    return db.words
-      .where('nextReviewDate')
-      .belowOrEqual(today)
-      .toArray();
+    today.setHours(23, 59, 59, 999);
+    return db.words.where('nextReviewDate').belowOrEqual(today).toArray();
   },
 
-  /**
-   * Get words by status
-   */
   async getWordsByStatus(status: Word['status']): Promise<Word[]> {
-    return db.words
-      .where('status')
-      .equals(status)
-      .toArray();
+    return db.words.where('status').equals(status).toArray();
   },
 
-  /**
-   * Get words by source
-   */
   async getWordsBySource(source: Word['source']): Promise<Word[]> {
-    return db.words
-      .where('source')
-      .equals(source)
-      .toArray();
+    return db.words.where('source').equals(source).toArray();
   },
 
-  /**
-   * Search words by word or translation
-   */
   async searchWords(query: string): Promise<Word[]> {
     const lowerQuery = query.toLowerCase();
-
     return db.words
-      .filter(word =>
-        word.word.toLowerCase().includes(lowerQuery) ||
-        word.translation.some(t => t.toLowerCase().includes(lowerQuery))
+      .filter(
+        (w) =>
+          w.word.toLowerCase().includes(lowerQuery) ||
+          w.translation.some((t) => t.toLowerCase().includes(lowerQuery))
       )
       .toArray();
   },
 
-  /**
-   * Get total word count
-   */
   async getWordCount(): Promise<number> {
     return db.words.count();
   },
 
-  /**
-   * Get word count by status
-   */
   async getWordCountByStatus(status: Word['status']): Promise<number> {
-    return db.words
-      .where('status')
-      .equals(status)
-      .count();
+    return db.words.where('status').equals(status).count();
   },
 
-  /**
-   * Check if a word already exists
-   */
   async wordExists(word: string, language: 'en' | 'de'): Promise<boolean> {
-    const existingWord = await db.words
+    const existing = await db.words
       .where('word')
       .equalsIgnoreCase(word)
-      .and(w => w.language === language)
+      .and((w) => w.language === language)
       .first();
-
-    return existingWord !== undefined;
+    return existing !== undefined;
   },
 
-  /**
-   * Get all words sorted by a specific field
-   */
-  async getWordsSorted(sortBy: 'dateAdded' | 'word' | 'difficulty', order: 'asc' | 'desc' = 'desc'): Promise<Word[]> {
+  async getWordsSorted(
+    sortBy: 'dateAdded' | 'word' | 'difficulty',
+    order: 'asc' | 'desc' = 'desc'
+  ): Promise<Word[]> {
     const words = await db.words.toArray();
-
     return words.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'dateAdded':
-          comparison = a.dateAdded.getTime() - b.dateAdded.getTime();
-          break;
-        case 'word':
-          comparison = a.word.localeCompare(b.word);
-          break;
-        case 'difficulty':
-          comparison = a.difficulty - b.difficulty;
-          break;
-      }
-
-      return order === 'asc' ? comparison : -comparison;
+      let cmp = 0;
+      if (sortBy === 'dateAdded') cmp = a.dateAdded.getTime() - b.dateAdded.getTime();
+      else if (sortBy === 'word') cmp = a.word.localeCompare(b.word);
+      else cmp = a.difficulty - b.difficulty;
+      return order === 'asc' ? cmp : -cmp;
     });
   },
+};
+
+// ── Router: pick Supabase or Dexie based on auth state ────────────────────
+
+function getAdapter() {
+  const { user, isLoading } = useAuthStore.getState();
+  return !isLoading && user ? supabaseWordAdapter : dexieWordAdapter;
+}
+
+// ── Public API (identical interface — no call sites need to change) ────────
+
+export const vocabularyStorage = {
+  addWord: (...args: Parameters<typeof dexieWordAdapter.addWord>) =>
+    getAdapter().addWord(...args),
+  getWord: (...args: Parameters<typeof dexieWordAdapter.getWord>) =>
+    getAdapter().getWord(...args),
+  getAllWords: () => getAdapter().getAllWords(),
+  updateWord: (...args: Parameters<typeof dexieWordAdapter.updateWord>) =>
+    getAdapter().updateWord(...args),
+  deleteWord: (...args: Parameters<typeof dexieWordAdapter.deleteWord>) =>
+    getAdapter().deleteWord(...args),
+  getDueWords: () => getAdapter().getDueWords(),
+  getWordsByStatus: (...args: Parameters<typeof dexieWordAdapter.getWordsByStatus>) =>
+    getAdapter().getWordsByStatus(...args),
+  getWordsBySource: (...args: Parameters<typeof dexieWordAdapter.getWordsBySource>) =>
+    getAdapter().getWordsBySource(...args),
+  searchWords: (...args: Parameters<typeof dexieWordAdapter.searchWords>) =>
+    getAdapter().searchWords(...args),
+  getWordCount: () => getAdapter().getWordCount(),
+  getWordCountByStatus: (...args: Parameters<typeof dexieWordAdapter.getWordCountByStatus>) =>
+    getAdapter().getWordCountByStatus(...args),
+  wordExists: (...args: Parameters<typeof dexieWordAdapter.wordExists>) =>
+    getAdapter().wordExists(...args),
+  getWordsSorted: (...args: Parameters<typeof dexieWordAdapter.getWordsSorted>) =>
+    getAdapter().getWordsSorted(...args),
 };

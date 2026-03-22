@@ -4,6 +4,8 @@ import { AppLayout } from './components/layout';
 import { DictionaryView } from './features/dictionary/DictionaryView';
 import { LearningView } from './features/learning/LearningView';
 import { VocabularyListView } from './features/vocabulary/VocabularyListView';
+import { AssessmentView } from './features/assessment/AssessmentView';
+import { ProfileView } from './features/profile/ProfileView';
 
 // Create a Query Client
 const queryClient = new QueryClient({
@@ -21,11 +23,13 @@ function App() {
       <BrowserRouter>
         <AppLayout>
           <Routes>
-            <Route path="/" element={<Navigate to="/dictionary" replace />} />
-            <Route path="/dictionary" element={<DictionaryView />} />
+            <Route path="/" element={<DictionaryView />} />
+            <Route path="/dictionary" element={<Navigate to="/" replace />} />
             <Route path="/vocabulary" element={<VocabularyListView />} />
+            <Route path="/assessment" element={<AssessmentView />} />
             <Route path="/learning" element={<LearningView />} />
-            <Route path="*" element={<Navigate to="/dictionary" replace />} />
+            <Route path="/profile" element={<ProfileView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>
       </BrowserRouter>

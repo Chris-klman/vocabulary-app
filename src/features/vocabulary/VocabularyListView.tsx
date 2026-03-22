@@ -7,6 +7,7 @@ export function VocabularyListView() {
   const [words, setWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'learning' | 'mastered' | 'difficult'>('all');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadWords = async () => {
     setIsLoading(true);
@@ -26,10 +27,10 @@ export function VocabularyListView() {
     loadWords();
   }, [filter]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Wort wirklich löschen?')) return;
+  const handleDeleteConfirm = async (id: string) => {
     await vocabularyStorage.deleteWord(id);
     setWords((prev) => prev.filter((w) => w.id !== id));
+    setDeletingId(null);
   };
 
   const statusLabel = (status: Word['status']) => {
@@ -40,34 +41,26 @@ export function VocabularyListView() {
     }
   };
 
-  const statusColor = (status: Word['status']) => {
-    switch (status) {
-      case 'learning': return 'bg-gray-100 text-gray-700';
-      case 'mastered': return 'bg-success-light text-gray-800';
-      case 'difficult': return 'bg-error-light text-gray-800';
-    }
-  };
-
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
-      <div className="text-center mb-4">
-        <h1 className="text-3xl font-bold mb-2">Meine Vokabeln</h1>
-        <p className="text-gray-600">
+      <div className="mb-6">
+        <h1 className="font-display font-normal text-3xl text-warm-900 mb-1">Bibliothek</h1>
+        <p className="text-warm-500 text-sm">
           {words.length} {words.length === 1 ? 'Wort' : 'Wörter'} gespeichert
         </p>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
         {([['all', 'Alle'], ['learning', 'Lernend'], ['mastered', 'Gemeistert'], ['difficult', 'Schwierig']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-manipulation shrink-0 ${
               filter === key
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-warm-900 text-warm-50'
+                : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
             }`}
           >
             {label}
@@ -84,10 +77,11 @@ export function VocabularyListView() {
 
       {/* Empty State */}
       {!isLoading && words.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <p className="text-6xl mb-4">📚</p>
-          <p className="text-lg mb-2">Noch keine Vokabeln gespeichert</p>
-          <p className="text-sm text-gray-400">
+        <div className="py-16 text-center space-y-2">
+          <p className="font-display font-normal text-2xl text-warm-300">
+            Noch keine Vokabeln
+          </p>
+          <p className="text-sm text-warm-400">
             Schlage Wörter nach und füge sie mit dem Button hinzu
           </p>
         </div>
@@ -97,28 +91,50 @@ export function VocabularyListView() {
       {!isLoading && words.length > 0 && (
         <div className="space-y-3">
           {words.map((word) => (
-            <div
-              key={word.id}
-              className="card p-4 flex items-center justify-between gap-3 border border-gray-200"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-lg truncate">{word.word}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs ${statusColor(word.status)}`}>
-                    {statusLabel(word.status)}
-                  </span>
+            <div key={word.id}>
+              <div className="card p-4 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-warm-900 truncate">{word.word}</span>
+                    <span className="px-2 py-0.5 rounded text-xs bg-warm-100 text-warm-600">
+                      {statusLabel(word.status)}
+                    </span>
+                  </div>
+                  <p className="text-warm-500 text-sm truncate">
+                    {word.translation.join(', ')}
+                  </p>
                 </div>
-                <p className="text-gray-600 text-sm truncate">
-                  {word.translation.join(', ')}
-                </p>
+                <button
+                  onClick={() => setDeletingId(deletingId === word.id ? null : word.id)}
+                  className="text-warm-300 hover:text-warm-900 transition-colors p-3 -mr-1 shrink-0 touch-manipulation"
+                  title="Löschen"
+                  aria-label="Wort löschen"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="13" y2="13" />
+                    <line x1="13" y1="1" x2="1" y2="13" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => handleDelete(word.id)}
-                className="text-gray-400 hover:text-error transition-colors p-2 shrink-0"
-                title="Löschen"
-              >
-                ✕
-              </button>
+              {deletingId === word.id && (
+                <div className="bg-warm-100 rounded-b-xl px-4 py-3 flex items-center justify-between -mt-1">
+                  <p className="text-sm text-warm-700">Wort wirklich löschen?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDeletingId(null)}
+                      className="text-sm text-warm-500 hover:text-warm-700 px-3 py-1"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      onClick={() => handleDeleteConfirm(word.id)}
+                      className="text-sm text-warm-50 bg-warm-900 hover:bg-warm-700 px-3 py-1 rounded-lg"
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

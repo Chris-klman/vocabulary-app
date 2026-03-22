@@ -103,6 +103,95 @@ IMPORTANT:
 - Translation should be the most common German translation`;
 }
 
+export function createAssessmentWordsPrompt(count: number, excludeWords: string[]): string {
+  const exclusionNote = excludeWords.length > 0
+    ? `\nDo NOT include any of these words (already known or in library):\n${excludeWords.slice(0, 200).join(', ')}`
+    : '';
+
+  return `Generate ${count} English vocabulary words for advanced German-English learners at C1 level.
+
+Requirements:
+- Genuinely useful in professional, academic, or everyday contexts at C1 level
+- NOT too basic (avoid: go, big, house, run, good, time, think)
+- NOT extremely rare, archaic, or overly specialized
+- Single words only — no phrases, compound expressions, or proper nouns
+- Good variety: include adjectives, verbs, nouns, and adverbs
+- Words a university-educated person would encounter regularly
+- No duplicates${exclusionNote}
+
+Return ONLY a JSON array, no explanations:
+[
+  {"word": "meticulous", "translation": "akribisch, sorgfältig", "partOfSpeech": "adjective"},
+  {"word": "alleviate", "translation": "lindern, mildern", "partOfSpeech": "verb"}
+]
+
+Return exactly ${count} items.`;
+}
+
+export function createSentenceTranslationPrompt(sentence: string, sourceLanguage: string): string {
+  const targetLanguage = sourceLanguage === 'de' ? 'en' : 'de';
+  const targetName = targetLanguage === 'de' ? 'German' : 'English';
+  const sourceName = sourceLanguage === 'de' ? 'German' : 'English';
+
+  return `You are an expert translator specializing in natural, idiomatic ${targetName} translations.
+
+Translate this ${sourceName} sentence into ${targetName} with three different style variations.
+
+Sentence: "${sentence}"
+
+Return a JSON object with this EXACT structure (no additional text, only JSON):
+{
+  "original": "${sentence}",
+  "variants": [
+    {
+      "style": "standard",
+      "label": "Standard",
+      "text": "Natural, everyday translation"
+    },
+    {
+      "style": "formal",
+      "label": "Formell",
+      "text": "More formal / professional translation"
+    },
+    {
+      "style": "informal",
+      "label": "Umgangssprachlich",
+      "text": "More casual / colloquial translation"
+    }
+  ]
+}
+
+IMPORTANT:
+- All three translations must be in ${targetName}
+- Each variant must feel natural and authentic for its register
+- The variants should noticeably differ in tone while preserving the meaning
+- No explanations, only the JSON object`;
+}
+
+export function createTextTranslationPrompt(text: string, sourceLanguage: string): string {
+  const targetLanguage = sourceLanguage === 'de' ? 'en' : 'de';
+  const targetName = targetLanguage === 'de' ? 'German' : 'English';
+  const sourceName = sourceLanguage === 'de' ? 'German' : 'English';
+
+  return `You are an expert translator specializing in natural, flowing ${targetName} translations.
+
+Translate this ${sourceName} text into ${targetName}. Produce one single, high-quality translation that reads fluently and preserves the original meaning and tone.
+
+Text: "${text}"
+
+Return a JSON object with this EXACT structure (no additional text, only JSON):
+{
+  "original": "${text}",
+  "translation": "The complete, natural ${targetName} translation here"
+}
+
+IMPORTANT:
+- Single translation only — no variants, no alternatives
+- Keep paragraphs and formatting intact
+- The translation must sound natural and idiomatic in ${targetName}
+- No explanations, only the JSON object`;
+}
+
 // Helper to extract JSON from OpenAI response
 export function extractJSON(response: string): any {
   try {
